@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>Hookline · Auto DJ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#09090f;--panel:#13131c;--panel2:#1b1b27;--line:#272738;--text:#eeedf7;--muted:#8d8ba5;--a:#ff3d81;--b:#3de0ff;--gold:#ffc94d;}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(1100px 600px at 0% -10%,#3a0f2a44,transparent),radial-gradient(900px 600px at 100% 0%,#0f2f3a44,transparent),var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;min-height:100vh}
+.wrap{max-width:1180px;margin:0 auto;padding:22px 18px 60px}
+header{display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:16px}
+h1{font-family:Unbounded;font-weight:800;font-size:30px;margin:0;letter-spacing:-.02em}
+h1 span{background:linear-gradient(90deg,var(--a),var(--b));-webkit-background-clip:text;background-clip:text;color:transparent}
+.modes{display:flex;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px}
+.modes button{border:none;background:transparent;padding:9px 16px;border-radius:10px;font-weight:600;color:var(--muted)}
+.modes button.on{background:linear-gradient(135deg,var(--a),#b8268a);color:#fff}
+button,select,input{font:inherit;color:var(--text)}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:#3d3d55}
+button:disabled{opacity:.4;cursor:default}
+.primary{background:linear-gradient(135deg,var(--a),#b8268a);border:none;font-weight:600}
+.grid{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(300px,1fr);gap:16px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+.screen{position:relative;aspect-ratio:16/9;border-radius:18px;overflow:hidden;background:#000;border:1px solid var(--line)}
+.screen .deckv{position:absolute;inset:0;transition:opacity .08s linear}
+.screen .deckv iframe,.screen .deckv>div{width:100%;height:100%;border:0;pointer-events:none}
+.screen .shade{position:absolute;inset:0;background:linear-gradient(180deg,#0000 45%,#000c 100%);pointer-events:none}
+.screen .np{position:absolute;left:18px;right:18px;bottom:16px;pointer-events:none}
+.np .lbl{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.np .t{font-family:Unbounded;font-weight:800;font-size:clamp(18px,2.6vw,28px);margin:6px 0 2px;text-shadow:0 2px 20px #000}
+.np .s{color:#ddd;font-size:14px}
+.np .bar{height:4px;background:#ffffff26;border-radius:4px;margin-top:12px;overflow:hidden}
+.np .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--a),var(--b))}
+.splash{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 40%,#2a1030,#09090f 70%);text-align:center;padding:20px}
+.splash p{color:var(--muted);margin:0;max-width:420px}
+.splash .primary{font-size:17px;padding:14px 26px}
+.mixing{position:absolute;top:14px;right:14px;background:#000a;border:1px solid #ffc94d55;color:var(--gold);font-size:12px;padding:6px 10px;border-radius:99px;display:none}
+.controls{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 4px;align-items:center}
+.controls .sp{flex:1}
+.xf{margin-top:14px}
+.xfrow{display:grid;grid-template-columns:1fr auto 1fr;gap:12px;align-items:center}
+.dk{min-width:0}
+.dk .tag{font-family:Unbounded;font-size:11px;letter-spacing:.14em}
+.dk.A .tag{color:var(--a)} .dk.B .tag{color:var(--b)} .dk.B{text-align:right}
+.dk .nm{font-size:13px;font-weight:600;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dk .st{font-size:11px;color:var(--muted);margin-top:2px}
+input[type=range].fader{-webkit-appearance:none;appearance:none;width:min(320px,42vw);height:12px;border-radius:9px;background:linear-gradient(90deg,var(--a),#2b2b40 42%,#2b2b40 58%,var(--b));outline:none}
+input[type=range].fader::-webkit-slider-thumb{-webkit-appearance:none;width:26px;height:38px;border-radius:7px;background:#f5f5fb;box-shadow:0 0 0 3px #09090f,0 6px 16px #000a;cursor:grab}
+input[type=range].fader::-moz-range-thumb{width:26px;height:38px;border-radius:7px;background:#f5f5fb;border:none;cursor:grab}
+.xfhint{text-align:center;font-size:12px;color:var(--muted);margin-top:8px;min-height:16px}
+.settings{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.set{display:flex;flex-direction:column;gap:5px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.set select,.set input[type=range]{text-transform:none;letter-spacing:0}
+select{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:13px}
+.chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chip{padding:7px 12px;border-radius:99px;font-size:13px;background:transparent}
+.chip.on{background:#ff3d8122;border-color:#ff3d8188;color:#fff}
+h2{font-family:Unbounded;font-size:15px;margin:0}
+.panelhead{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto}
+.list li{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 10px;border-radius:12px;background:var(--panel2);border:1px solid transparent}
+.list li.next{border-color:#ffc94d55}
+.list .t{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .s{font-size:11.5px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.list .acts{display:flex;gap:3px}
+.list .acts button{padding:5px 8px;font-size:12px;border-radius:8px;background:transparent;border-color:transparent}
+.list .acts button:hover{border-color:var(--line)}
+.g{display:inline-block;font-size:10px;padding:1px 6px;border-radius:5px;margin-right:6px;background:#ffffff12;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.est{color:var(--gold)}
+.search{width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13px;margin-bottom:8px}
+.addrow{display:flex;gap:6px;margin-top:10px}
+.addrow input{flex:1;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:9px 11px;font-size:13px;min-width:0}
+.foot{color:var(--muted);font-size:12px;margin-top:20px;line-height:1.6}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:#1d1d2a;border:1px solid var(--line);padding:10px 16px;border-radius:12px;font-size:13px;opacity:0;transition:.25s;pointer-events:none;z-index:9}
+.toast.on{opacity:1}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Hook<span>line</span></h1>
+    <div class="modes"><button id="mAuto" class="on" title="Hookline picks songs and mixes automatically">Auto</button><button id="mDj" title="You control when and how songs mix">DJ mode</button></div>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="screen" id="screen">
+        <div class="deckv" id="vA"><div id="pA"></div></div>
+        <div class="deckv" id="vB"><div id="pB"></div></div>
+        <div class="shade"></div>
+        <div class="mixing" id="mixing"></div>
+        <div class="np" id="np"><div class="lbl" id="npLbl"></div><div class="t" id="npT"></div><div class="s" id="npS"></div><div class="bar"><i id="npBar"></i></div></div>
+        <div class="splash" id="splash">
+          <h1 style="font-size:26px">Hook<span>line</span></h1>
+          <p>Every song starts at its hook, and each one mixes into the next. Pick your languages below, then start the party.</p>
+          <button class="primary" id="startBtn" disabled>Loading player…</button>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="playBtn" disabled>❚❚ Pause</button>
+        <button id="mixBtn" disabled title="Mix into the next song now (M)">⏭ Mix now</button>
+        <button id="skipBtn" disabled title="Quick cut to the next song (S)">⏩ Skip</button>
+        <div class="sp"></div>
+        <button id="markBtn" disabled title="Save the current moment as this song's hook (H)">📍 Mark hook here</button>
+      </div>
+
+      <div class="card xf">
+        <div class="xfrow">
+          <div class="dk A"><div class="tag">DECK A</div><div class="nm" id="dA">—</div><div class="st" id="sA">empty</div></div>
+          <input type="range" class="fader" id="fader" min="0" max="1000" value="0">
+          <div class="dk B"><div class="tag">DECK B</div><div class="nm" id="dB">—</div><div class="st" id="sB">empty</div></div>
+        </div>
+        <div class="xfhint" id="xfhint"></div>
+        <div class="settings">
+          <label class="set">Time per song
+            <select id="playTime"><option value="30">30 sec</option><option value="45" selected>45 sec</option><option value="60">1 min</option><option value="90">1.5 min</option><option value="full">Hook to end</option></select></label>
+          <label class="set">Transition length
+            <select id="fade"><option value="3">Quick (3s)</option><option value="6" selected>Smooth (6s)</option><option value="10">Long (10s)</option></select></label>
+          <label class="set">Transition style
+            <select id="style"><option value="auto">Auto (DJ picks)</option><option value="blend">Blend</option><option value="drop">Fade out → drop</option><option value="slow">Slow-down → drop</option></select></label>
+          <label class="set">Volume <input type="range" id="vol" min="0" max="100" value="100"></label>
+        </div>
+        <div class="chips" id="genres"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="card">
+        <div class="panelhead"><h2>Up next</h2><div style="display:flex;gap:6px"><button id="shuffleBtn" style="padding:6px 10px;font-size:12px">⤮ Reshuffle</button></div></div>
+        <ul class="list" id="queue"></ul>
+      </div>
+      <div class="card">
+        <div class="panelhead"><h2>Library</h2><span id="libCount" style="color:var(--muted);font-size:12px"></span></div>
+        <input class="search" id="search" placeholder="Search songs, artists, movies…">
+        <ul class="list" id="lib"></ul>
+        <div class="addrow"><input id="ytUrl" placeholder="Paste any YouTube link to add a song"><button id="addBtn">Add</button></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>Auto</b> picks songs from your selected languages, starts each one at its hook and mixes into the next with a mix of blends, drops and slow-downs. <b>DJ mode</b> stops the automatic mixing: drag the crossfader yourself, or hit Mix now. The next song is always loaded and waiting on the other deck.
+    Hook times come from YouTube's "most replayed" data; ones marked <span class="est">≈</span> are estimates. If a hook is off, hit <b>📍 Mark hook here</b> at the right moment and it's saved for next time.
+    Shortcuts: <b>Space</b> pause · <b>M</b> mix now · <b>S</b> skip · <b>H</b> mark hook.
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// [genre, youtubeId, title, artist / movie, lengthSec, hookSec, fromHeatmap]
+const LIBRARY = [
+["h","jCEdTq3j-0U","Gallan Goodiyaan","Dil Dhadakne Do",278,154,0],
+["h","k4yXQkG2s1E","Kala Chashma","Baar Baar Dekho · Badshah, Neha Kakkar",173,33,1],
+["h","II2EO3Nw4m0","Badtameez Dil","Yeh Jawaani Hai Deewani",271,44,1],
+["h","udra3Mfw2oo","London Thumakda","Queen",215,13,1],
+["h","HgIW7P4dsXU","Nachde Ne Saare","Baar Baar Dekho",202,146,1],
+["h","wDIrpvH8MzE","Desi Girl","Dostana",301,43,1],
+["h","_KhQT-LGb-4","Aankh Marey","Simmba",203,146,1],
+["h","TRa9IMvccjg","Dilbar","Satyameva Jayate",177,79,0],
+["h","EEX_XM6SxmY","Tamma Tamma Again","Badrinath Ki Dulhania",177,99,1],
+["h","NTHz9ephYTw","Kar Gayi Chull","Kapoor & Sons · Badshah",142,8,0],
+["h","qFkNATtc3mc","Ghungroo","War",145,53,1],
+["h","8LZgzAZ2lpQ","Abhi Toh Party Shuru Hui Hai","Khoobsurat · Badshah",189,42,0],
+["h","RpuhD_xKadk","Sweety Tera Drama","Bareilly Ki Barfi",149,33,0],
+["h","2I3NgxDAiqE","Tune Maari Entriyaan","Gunday",265,115,1],
+["h","fbwCgt1hMD4","Lungi Dance","Chennai Express · Yo Yo Honey Singh",212,96,0],
+["h","7TRFf7uUfhQ","Swag Se Swagat","Tiger Zinda Hai",233,64,1],
+["h","0WtRNGubWGA","Balam Pichkari","Yeh Jawaani Hai Deewani",260,66,1],
+["h","l_MyUGq7pgs","Malhari","Bajirao Mastani",220,165,1],
+["h","kd5KqlmcHNo","The Breakup Song","Ae Dil Hai Mushkil",212,26,1],
+["h","rW9_-dVCmrM","Saturday Saturday","Humpty Sharma Ki Dulhania",183,33,1],
+["h","ZTmF2v59CtI","Sheila Ki Jawani","Tees Maar Khan",270,169,1],
+["h","K-pX4qwtAxA","Chaiyya Chaiyya","Dil Se · A R Rahman",407,90,0],
+["h","pElk1ShPrcE","Ainvayi Ainvayi","Band Baaja Baaraat",282,23,1],
+["h","4dsFQFCvVGU","Kajra Re","Bunty Aur Babli",474,359,1],
+["h","1YBl3Zbt80A","Badri Ki Dulhania","Badrinath Ki Dulhania",173,110,1],
+["h","YxWlaYCA8MU","Jhoome Jo Pathaan","Pathaan",203,67,1],
+["h","P1fIdFRnfqw","What Jhumka?","Rocky Aur Rani Kii Prem Kahaani",223,49,1],
+["h","uTuchIYZdbM","Tauba Tauba","Bad Newz · Karan Aujla",207,106,1],
+["h","TCx1yMegJ4A","Naach Meri Rani","Guru Randhawa, Nora Fatehi",223,18,1],
+["h","i0_m90T04uw","Kamariya","Mitron · Darshan Raval",187,144,1],
+["h","yr7JFNsz5dU","Chogada","Loveyatri",275,144,1],
+["h","1j5aaDOA9XQ","Dhating Naach","Phata Poster Nikhla Hero",170,10,1],
+["h","MhgURCPNoD0","Morni Banke","Badhaai Ho · Guru Randhawa",197,43,0],
+["h","rJqX-YUZddc","Gali Gali","KGF · Neha Kakkar",129,92,1],
+["h","hxMNYkLN7tI","Aaj Ki Raat","Stree 2",287,58,1],
+["p","5X7WWVTrBvM","Lamberghini","The Doorbeen ft. Ragini",218,20,0],
+["p","yo7623fuTZk","Patola","Guru Randhawa, Bohemia",212,47,0],
+["p","hjWf8A0YNSE","High Rated Gabru","Guru Randhawa",216,46,0],
+["p","VNs_cCtdbPc","Brown Munde","AP Dhillon, Gurinder Gill",268,25,1],
+["p","uQ763VvqiEM","Suit Suit","Guru Randhawa ft. Arjun",202,93,0],
+["p","YmXJp4RtBCM","Proper Patola","Namaste England · Diljit, Badshah",180,12,1],
+["p","GOkJguI8kYc","Illegal Weapon 2.0","Street Dancer 3D",217,133,1],
+["p","G0Hx6uN2AJE","Kya Baat Ay","Harrdy Sandhu",190,134,1],
+["p","cWMxCE2HTag","Softly","Karan Aujla",171,38,0],
+["p","mH_LFkWxpI0","Lover","Diljit Dosanjh",187,13,1],
+["p","dCmp56tSSmA","Born To Shine","Diljit Dosanjh",218,15,1],
+["p","x9WO2ieJMYk","Mundian To Bach Ke","Panjabi MC",237,15,1],
+["p","92ydUdqWE1g","Tunak Tunak Tun","Daler Mehndi",256,24,1],
+["p","oK8I_eg-p_8","5 Taara","Diljit Dosanjh",224,45,1],
+["p","bzW9fmwcmG4","Daru Badnaam","Kamal Kahlon, Param Singh",240,49,1],
+["p","IZDbfXjZ0Bw","Bijlee Bijlee","Harrdy Sandhu",194,43,0],
+["p","8qs2dZO6wcc","Naah","Harrdy Sandhu ft. Nora Fatehi",201,20,0],
+["p","vX2cDW8LUWk","Excuses","AP Dhillon, Gurinder Gill",176,46,1],
+["p","Xq5UK_TB8J0","Gabru","Yo Yo Honey Singh ft. J Star",213,17,1],
+["p","15Sjjl_24x0","Laembadgini","Diljit Dosanjh",338,106,1],
+["p","3SWc5G8Gx7E","Tareefan","Veere Di Wedding · Badshah",185,35,1],
+["p","cl0a3i2wFcc","G.O.A.T.","Diljit Dosanjh",223,157,1],
+["p","7lWeQs8Firo","Coka","Sukh-E Muzical Doctorz",181,14,1],
+["p","UXf-jaznx80","Koka","Khandaani Shafakhana · Badshah",174,102,0],
+["e","OPf0YbXqDm0","Uptown Funk","Mark Ronson ft. Bruno Mars",270,59,0],
+["e","6JCLY0Rlx6Q","Shut Up and Dance","Walk The Moon",246,18,1],
+["e","TUVcZfQe-Kw","Levitating","Dua Lipa ft. DaBaby",230,23,1],
+["e","oygrmJFKYZY","Don't Start Now","Dua Lipa",181,62,0],
+["e","ru0K8uYEZWw","Can't Stop the Feeling!","Justin Timberlake",286,63,0],
+["e","4NRXx6U8ABQ","Blinding Lights","The Weeknd",263,32,1],
+["e","KQ6zr6kCPj8","Party Rock Anthem","LMFAO",376,212,1],
+["e","GxBSyx85Kp8","Yeah!","Usher ft. Lil Jon, Ludacris",253,56,0],
+["e","JGwWNGJdvx8","Shape of You","Ed Sheeran",263,58,0],
+["e","JRfuAukYTKg","Titanium","David Guetta ft. Sia",245,54,0],
+["e","uSD4vsh1zDA","I Gotta Feeling","The Black Eyed Peas",291,129,1],
+["e","kJQP7kiw5Fk","Despacito","Luis Fonsi ft. Daddy Yankee",282,77,1],
+["e","IcrbM1l_BoI","Wake Me Up","Avicii",273,69,0],
+["e","hHUbLv4ThOo","Timber","Pitbull ft. Kesha",214,116,0],
+["e","eVli-tstM5E","Espresso","Sabrina Carpenter",201,18,1],
+["e","YqeW9_5kURI","Lean On","Major Lazer & DJ Snake",179,43,1]
+];
+const GENRES = { h: "Hindi", p: "Punjabi", e: "English", c: "My songs" };
+
+(() => {
+  const $ = id => document.getElementById(id);
+  const store = {
+    get(k, d){ try { const v = localStorage.getItem('hookline.' + k); return v ? JSON.parse(v) : d; } catch(e){ return d; } },
+    set(k, v){ try { localStorage.setItem('hookline.' + k, JSON.stringify(v)); } catch(e){} }
+  };
+
+  // ---------- data ----------
+  const hookOverrides = store.get('hooks', {});
+  const custom = store.get('custom', []);
+  const songs = LIBRARY.map(r => ({ g: r[0], id: r[1], t: r[2], a: r[3], len: r[4], hook: r[5], heat: !!r[6] }))
+    .concat(custom.map(c => Object.assign({ g: 'c' }, c)));
+  const byId = Object.fromEntries(songs.map(s => [s.id, s]));
+  const bad = new Set();
+
+  const saved = store.get('settings', {});
+  const S = {
+    mode: saved.mode || 'auto',
+    genres: saved.genres || { h: true, p: true, e: false, c: true },
+    playTime: saved.playTime || '45', fade: saved.fade || '6', style: saved.style || 'auto', vol: saved.vol ?? 100
+  };
+  const saveSettings = () => store.set('settings', S);
+
+  const hookOf = s => hookOverrides[s.id] ?? s.hook ?? 30;
+  const fadeSec = () => +S.fade;
+  function endOf(s){
+    const len = s.len || 9999;
+    if (S.playTime === 'full') return len - 1.5;
+    return Math.min(hookOf(s) + (+S.playTime), len - 1.5);
+  }
+  function entryOf(s, style){
+    // blend: start early so the hook lands as the fade finishes
+    const h = hookOf(s);
+    return Math.max(0, style === 'blend' ? h - fadeSec() : h);
+  }
+
+  // ---------- queue ----------
+  let queue = [];
+  const recent = [];
+  function pool(){ return songs.filter(s => S.genres[s.g] && !bad.has(s.id)); }
+  function fillQueue(){
+    const p = pool(); if (!p.length) return;
+    let guard = 0;
+    while (queue.length < 10 && guard++ < 200){
+      const inUse = new Set([...queue.map(s => s.id), ...decks.filter(d => d.song).map(d => d.song.id)]);
+      const fresh = p.filter(s => !inUse.has(s.id) && !recent.includes(s.id));
+      const choices = fresh.length ? fresh : p.filter(s => !inUse.has(s.id));
+      if (!choices.length) break;
+      // avoid same artist back to back
+      const last = queue.length ? queue[queue.length - 1] : (cur() && cur().song);
+      let pick = choices[Math.floor(Math.random() * choices.length)];
+      if (last){ const alt = choices.filter(c => c.a.split(/[·,]/)[0] !== last.a.split(/[·,]/)[0]); if (alt.length) pick = alt[Math.floor(Math.random() * alt.length)]; }
+      queue.push(pick);
+    }
+  }
+
+  // ---------- decks ----------
+  const decks = [
+    { name: 'A', el: $('vA'), vol: 0, status: 'empty', song: null },
+    { name: 'B', el: $('vB'), vol: 0, status: 'empty', song: null }
+  ];
+  let ci = 0;                       // index of the live deck
+  const cur = () => decks[ci], other = () => decks[1 - ci];
+  let started = false, paused = false, fading = null, pendingMix = null, apiReady = 0, manualDrag = false;
+
+  function applyVol(d){
+    if (!d.p || !d.p.setVolume) return;
+    d.p.setVolume(Math.round(Math.max(0, Math.min(1, d.vol)) * S.vol));
+    d.el.style.opacity = Math.max(d === cur() && !fading && !manualDrag ? 1 : 0, Math.min(1, d.vol * 1.15)).toFixed(3);
+  }
+
+  window.onYouTubeIframeAPIReady = () => {
+    decks.forEach((d, i) => {
+      d.p = new YT.Player(i ? 'pB' : 'pA', {
+        width: '100%', height: '100%',
+        playerVars: { controls: 0, disablekb: 1, playsinline: 1, rel: 0, iv_load_policy: 3, fs: 0, modestbranding: 1, origin: location.origin },
+        events: {
+          onReady: () => { d.ready = true; if (++apiReady === 2){ $('startBtn').disabled = false; $('startBtn').textContent = '▶ Start the party'; } },
+          onStateChange: e => onState(d, e.data),
+          onError: e => onErr(d, e.data)
+        }
+      });
+    });
+  };
+
+  function load(d, song, style){
+    d.song = song; d.status = 'loading'; d.style = style; d.loadT = Date.now();
+    d.vol = 0; d.p.mute(); applyVol(d);
+    d.p.loadVideoById({ videoId: song.id, startSeconds: entryOf(song, style) });
+    render();
+  }
+
+  function onState(d, st){
+    if (st === YT.PlayerState.PLAYING){
+      if (d.status === 'loading'){
+        // fill in details for pasted songs
+        const dur = d.p.getDuration(); if (dur && (!d.song.len || d.song.g === 'c')) d.song.len = Math.round(dur);
+        if (d.song.g === 'c'){
+          const vd = d.p.getVideoData && d.p.getVideoData();
+          if (vd && vd.title && d.song.t.startsWith('YouTube video')){ d.song.t = vd.title; d.song.a = vd.author || 'YouTube'; }
+          if (d.song.hook == null) d.song.hook = Math.round((d.song.len || 200) * 0.25);
+          saveCustom();
+        }
+        if (d.role === 'live'){ d.status = 'playing'; d.p.unMute(); d.vol = 1; applyVol(d); }
+        else { d.p.pauseVideo(); d.status = 'cued'; d.p.seekTo(entryOf(d.song, d.style), true); }
+        render();
+      }
+    } else if (st === YT.PlayerState.ENDED && d === cur() && !fading){
+      // ran out of song: force a transition, or stop if nothing is ready
+      if (other().status === 'cued') startMix('quick'); else d.status = 'ended';
+    }
+  }
+
+  function onErr(d, code){
+    const s = d.song;
+    if (s){ bad.add(s.id); toast(`Skipped "${s.t}" (not playable here)`); }
+    queue = queue.filter(q => !s || q.id !== s.id);
+    d.status = 'empty'; d.song = null; d.vol = 0; applyVol(d);
+    if (d === cur() && !fading){
+      // live deck failed: start the next song directly
+      const n = queue.shift(); fillQueue();
+      if (n){ d.role = 'live'; load(d, n, 'drop'); }
+    }
+    render();
+  }
+
+  function pickStyle(){
+    if (S.style !== 'auto') return S.style;
+    const r = Math.random();
+    return r < 0.62 ? 'blend' : r < 0.9 ? 'drop' : 'slow';
+  }
+
+  // ---------- transitions ----------
+  function startMix(kind){
+    const c = cur(), n = other();
+    if (fading || !started) return;
+    if (n.status !== 'cued'){ pendingMix = kind || 'normal'; if (n.status === 'empty') preloadNext(); render(); return; }
+    pendingMix = null;
+    const quick = kind === 'quick';
+    const style = quick ? 'drop' : n.style;
+    const F = quick ? 1.2 : fadeSec();
+    queue = queue.filter(q => q !== n.song);
+    n.p.seekTo(entryOf(n.song, n.style), true);
+    n.p.unMute(); n.vol = 0; applyVol(n);
+    if (style === 'blend' || manualDrag) n.p.playVideo();
+    fading = { t0: performance.now(), F, style, c, n, started: style === 'blend', rate: 1 };
+    $('mixing').style.display = 'block';
+    $('mixing').textContent = { blend: 'Blending', drop: 'Fade out → drop', slow: 'Slow-down → drop' }[style] + ' · ' + n.song.t;
+    render();
+  }
+
+  function stepFade(){
+    const f = fading; if (!f) return;
+    const x = Math.min(1, (performance.now() - f.t0) / 1000 / f.F);
+    const { c, n } = f;
+    if (f.style === 'blend'){
+      c.vol = Math.cos(x * Math.PI / 2); n.vol = Math.sin(x * Math.PI / 2);
+    } else {
+      if (f.style === 'slow'){
+        const r = x < 0.4 ? 0.75 : 0.5;
+        if (r !== f.rate){ f.rate = r; try { c.p.setPlaybackRate(r); } catch(e){} }
+      }
+      c.vol = 1 - x * x;
+      if (x >= 0.88 && !f.started){ f.started = true; n.p.playVideo(); }
+      n.vol = f.started ? Math.min(1, (x - 0.88) / 0.12) : 0;
+    }
+    applyVol(c); applyVol(n);
+    setFader(ci === 0 ? x : 1 - x);
+    if (x >= 1) finishMix();
+  }
+
+  function finishMix(){
+    const { c, n } = fading;
+    try { c.p.pauseVideo(); c.p.setPlaybackRate(1); } catch(e){}
+    if (c.song){ recent.push(c.song.id); while (recent.length > 25) recent.shift(); }
+    c.status = 'empty'; c.song = null; c.vol = 0; applyVol(c);
+    n.status = 'playing'; n.role = 'live'; n.vol = 1; n.liveSince = Date.now();
+    ci = decks.indexOf(n); fading = null; manualDrag = false;
+    applyVol(n);
+    $('mixing').style.display = 'none';
+    setFader(ci);
+    fillQueue(); render();
+  }
+
+  function preloadNext(){
+    const n = other();
+    if (n.status !== 'empty' || !queue.length) return;
+    n.role = 'preload';
+    load(n, queue[0], pickStyle());
+  }
+
+  // ---------- main loop ----------
+  function tick(){
+    if (!started) return;
+    if (fading){ stepFade(); return; }
+    const c = cur(), n = other();
+    if (paused || c.status !== 'playing') { updateNowPlaying(); return; }
+    // make sure the queue head is what's loaded on the other deck
+    if (n.status !== 'empty' && n.song && queue[0] !== n.song && !manualDrag){
+      n.p.stopVideo(); n.status = 'empty'; n.song = null;
+    }
+    if (n.status === 'empty' && Date.now() - (c.liveSince || 0) > 2500) preloadNext();
+    // a stuck preload: give up after 15s and try the next song
+    if (n.status === 'loading' && Date.now() - n.loadT > 15000){ onErr(n, 'timeout'); }
+    if (pendingMix && n.status === 'cued') startMix(pendingMix);
+    else if (!manualDrag){
+      const t = c.p.getCurrentTime(), end = endOf(c.song);
+      const lead = (n.style === 'blend' ? fadeSec() : fadeSec());
+      const hardEnd = (c.song.len || 9999) - fadeSec() - 1;
+      if (S.mode === 'auto' && t >= end - lead) startMix();
+      else if (S.mode === 'dj' && t >= hardEnd) startMix(); // never run into silence
+    }
+    updateNowPlaying();
+  }
+  setInterval(tick, 50);
+
+  // ---------- manual crossfader ----------
+  const fader = $('fader');
+  function setFader(pos){ if (!faderHeld) fader.value = Math.round(pos * 1000); }
+  let faderHeld = false;
+  fader.addEventListener('pointerdown', () => faderHeld = true);
+  window.addEventListener('pointerup', () => { if (faderHeld){ faderHeld = false; faderRelease(); } });
+  fader.addEventListener('input', () => {
+    if (!started || fading){ setFaderSilently(); return; }
+    const pos = fader.value / 1000;          // 0 = deck A, 1 = deck B
+    const c = cur(), n = other();
+    const towardNext = ci === 0 ? pos : 1 - pos;
+    if (n.status !== 'cued' && n.status !== 'playing'){
+      $('xfhint').textContent = 'Next song is still loading…'; setFaderSilently(); return;
+    }
+    if (towardNext > 0.01 && !manualDrag){
+      manualDrag = true; queue = queue.filter(q => q !== n.song);
+      n.p.seekTo(entryOf(n.song, 'blend'), true); n.p.unMute(); n.status = 'playing'; n.p.playVideo();
+      $('mixing').style.display = 'block'; $('mixing').textContent = 'Manual mix · ' + n.song.t;
+    }
+    if (manualDrag){
+      c.vol = Math.cos(towardNext * Math.PI / 2); n.vol = Math.sin(towardNext * Math.PI / 2);
+      applyVol(c); applyVol(n);
+      if (towardNext >= 0.985){ fading = { c, n }; finishMix(); }
+      else if (towardNext <= 0.003){ cancelManual(); }
+    }
+  });
+  function setFaderSilently(){ fader.value = (fading ? fader.value : ci * 1000); }
+  function faderRelease(){}
+  function cancelManual(){
+    const c = cur(), n = other();
+    manualDrag = false; n.vol = 0; applyVol(n); n.p.pauseVideo(); n.p.mute(); n.status = 'cued';
+    n.p.seekTo(entryOf(n.song, n.style), true);
+    queue.unshift(n.song); c.vol = 1; applyVol(c);
+    $('mixing').style.display = 'none'; render();
+  }
+
+  // ---------- controls ----------
+  $('startBtn').onclick = () => {
+    fillQueue();
+    const first = queue.shift(); if (!first){ toast('Pick at least one language with songs'); return; }
+    started = true; $('splash').style.display = 'none';
+    const d = cur(); d.role = 'live'; load(d, first, 'drop');
+    d.p.unMute(); d.p.playVideo(); d.liveSince = Date.now();
+    fillQueue(); render();
+  };
+  $('playBtn').onclick = togglePause;
+  function togglePause(){
+    if (!started || fading) return;
+    paused = !paused;
+    decks.forEach(d => { if (d.status === 'playing') paused ? d.p.pauseVideo() : d.p.playVideo(); });
+    render();
+  }
+  $('mixBtn').onclick = () => { if (manualDrag) return; startMix(); };
+  $('skipBtn').onclick = () => { if (manualDrag) return; startMix('quick'); };
+  $('markBtn').onclick = markHook;
+  function markHook(){
+    const c = cur(); if (!c.song || c.status !== 'playing') return;
+    const t = Math.round(c.p.getCurrentTime());
+    hookOverrides[c.song.id] = t; store.set('hooks', hookOverrides);
+    if (c.song.g === 'c'){ c.song.hook = t; saveCustom(); }
+    toast(`Hook for "${c.song.t}" saved at ${fmt(t)}`); render();
+  }
+  document.addEventListener('keydown', e => {
+    if (e.target.tagName === 'INPUT' && e.target.type !== 'range') return;
+    if (e.code === 'Space'){ e.preventDefault(); togglePause(); }
+    else if (e.key === 'm' || e.key === 'M') $('mixBtn').click();
+    else if (e.key === 's' || e.key === 'S') $('skipBtn').click();
+    else if (e.key === 'h' || e.key === 'H') markHook();
+  });
+
+  function setMode(m){
+    S.mode = m; saveSettings();
+    $('mAuto').classList.toggle('on', m === 'auto'); $('mDj').classList.toggle('on', m === 'dj');
+    render();
+  }
+  $('mAuto').onclick = () => setMode('auto');
+  $('mDj').onclick = () => setMode('dj');
+
+  ['playTime', 'fade', 'style'].forEach(k => {
+    $(k).value = S[k];
+    $(k).onchange = () => {
+      S[k] = $(k).value; saveSettings();
+      const n = other();
+      if (k !== 'playTime' && n.status === 'cued' && !manualDrag){ n.style = pickStyle(); n.p.seekTo(entryOf(n.song, n.style), true); }
+      render();
+    };
+  });
+  $('vol').value = S.vol;
+  $('vol').oninput = () => { S.vol = +$('vol').value; decks.forEach(applyVol); saveSettings(); };
+
+  function renderGenres(){
+    $('genres').innerHTML = Object.entries(GENRES).filter(([g]) => g !== 'c' || songs.some(s => s.g === 'c'))
+      .map(([g, n]) => `<button class="chip ${S.genres[g] ? 'on' : ''}" data-g="${g}">${n} · ${songs.filter(s => s.g === g).length}</button>`).join('');
+  }
+  $('genres').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const g = b.dataset.g; S.genres[g] = !S.genres[g];
+    if (!Object.values(S.genres).some(Boolean)) S.genres[g] = true;
+    saveSettings();
+    // rebuild the upcoming queue with the new languages (keep anything already loaded)
+    const n = other(); const keep = n.status !== 'empty' && n.song ? [n.song] : [];
+    queue = keep.concat(queue.filter(s => s !== keep[0] && S.genres[s.g]));
+    fillQueue(); renderGenres(); render();
+  };
+  $('shuffleBtn').onclick = () => {
+    const n = other(); const keep = n.status !== 'empty' && n.song && queue[0] === n.song ? [queue[0]] : [];
+    queue = keep; fillQueue(); render();
+  };
+
+  // ---------- library ----------
+  function renderLib(){
+    const q = $('search').value.trim().toLowerCase();
+    const list = songs.filter(s => !q || (s.t + ' ' + s.a).toLowerCase().includes(q));
+    $('libCount').textContent = songs.length + ' songs';
+    $('lib').innerHTML = list.map(s => `<li><div style="min-width:0"><div class="t">${esc(s.t)}</div><div class="s"><span class="g">${GENRES[s.g]}</span>${esc(s.a)}</div></div>
+      <div class="acts"><button data-a="next" data-id="${s.id}" title="Play next">⤴ Next</button><button data-a="add" data-id="${s.id}" title="Add to end of queue">＋</button></div></li>`).join('');
+  }
+  $('search').oninput = renderLib;
+  $('lib').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const s = byId[b.dataset.id]; if (!s) return;
+    queue = queue.filter(x => x !== s);
+    const n = other();
+    if (b.dataset.a === 'next'){
+      // replace whatever is waiting on the other deck
+      if (n.status === 'cued' || n.status === 'loading'){ if (!manualDrag){ n.p.stopVideo(); n.status = 'empty'; n.song = null; } }
+      queue.unshift(s); toast(`"${s.t}" is up next`);
+    } else { queue.push(s); toast(`Added "${s.t}"`); }
+    render();
+  };
+  $('queue').onclick = e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const i = +b.dataset.i, s = queue[i]; if (!s) return;
+    const n = other();
+    if (b.dataset.a === 'rm'){
+      queue.splice(i, 1);
+      if (i === 0 && n.song === s && !manualDrag){ n.p.stopVideo(); n.status = 'empty'; n.song = null; }
+      fillQueue();
+    } else if (b.dataset.a === 'up' && i > 0){
+      [queue[i - 1], queue[i]] = [queue[i], queue[i - 1]];
+    } else if (b.dataset.a === 'now'){
+      queue.splice(i, 1); queue.unshift(s);
+      if (n.song !== s && !manualDrag){ n.p.stopVideo(); n.status = 'empty'; n.song = null; }
+      if (started) pendingMix = 'normal';
+    }
+    render();
+  };
+
+  function parseYt(u){
+    u = u.trim();
+    const m = u.match(/(?:v=|youtu\.be\/|shorts\/|embed\/|live\/)([\w-]{11})/) || u.match(/^([\w-]{11})$/);
+    return m ? m[1] : null;
+  }
+  function saveCustom(){ store.set('custom', songs.filter(s => s.g === 'c').map(s => ({ id: s.id, t: s.t, a: s.a, len: s.len, hook: s.hook }))); }
+  $('addBtn').onclick = () => {
+    const id = parseYt($('ytUrl').value);
+    if (!id){ toast('That doesn\'t look like a YouTube link'); return; }
+    let s = byId[id];
+    if (!s){ s = { g: 'c', id, t: 'YouTube video ' + id, a: 'Pasted link', len: 0, hook: null }; songs.push(s); byId[id] = s; S.genres.c = true; saveCustom(); saveSettings(); }
+    queue = queue.filter(x => x !== s); queue.splice(Math.min(1, queue.length), 0, s);
+    $('ytUrl').value = ''; toast('Added. It plays soon, so tap 📍 at the chorus to save its hook.');
+    renderGenres(); renderLib(); render();
+  };
+  $('ytUrl').addEventListener('keydown', e => { if (e.key === 'Enter') $('addBtn').click(); });
+
+  // ---------- rendering ----------
+  const fmt = s => { s = Math.max(0, Math.round(s)); return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0'); };
+  const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let toastT;
+  function toast(m){ const t = $('toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+  function hookLabel(s){
+    const h = hookOverrides[s.id];
+    if (h != null) return `hook ${fmt(h)} ✓`;
+    if (s.hook == null) return 'hook: tap 📍 when it plays';
+    return `hook ${s.heat ? '' : '<span class="est">≈</span>'}${fmt(s.hook)}`;
+  }
+  function render(){
+    const n = other();
+    $('queue').innerHTML = queue.length ? queue.map((s, i) => {
+      const loaded = i === 0 && n.song === s ? (n.status === 'cued' ? ' · <span style="color:var(--gold)">loaded</span>' : n.status === 'loading' ? ' · loading…' : '') : '';
+      return `<li class="${i === 0 ? 'next' : ''}"><div style="min-width:0"><div class="t">${esc(s.t)}</div><div class="s"><span class="g">${GENRES[s.g]}</span>${esc(s.a)} · ${hookLabel(s)}${loaded}</div></div>
+        <div class="acts"><button data-a="now" data-i="${i}" title="Mix this in now">▶</button><button data-a="up" data-i="${i}" title="Move up">↑</button><button data-a="rm" data-i="${i}" title="Remove">✕</button></div></li>`;
+    }).join('') : '<li><div class="s">Queue is empty. Add songs from the library.</div></li>';
+    decks.forEach((d, i) => {
+      $('d' + d.name).textContent = d.song ? d.song.t : '—';
+      const live = i === ci && started;
+      $('s' + d.name).textContent = !d.song ? 'empty' : live ? (paused ? 'paused' : 'on air') : d.status === 'cued' ? 'cued at hook' : d.status === 'loading' ? 'loading…' : d.status === 'playing' ? 'mixing in' : d.status;
+    });
+    $('playBtn').disabled = !started; $('playBtn').textContent = paused ? '▶ Resume' : '❚❚ Pause';
+    $('mixBtn').disabled = $('skipBtn').disabled = !started || !!fading || manualDrag;
+    $('markBtn').disabled = !started;
+    $('xfhint').textContent = !started ? '' : S.mode === 'dj'
+      ? (n.status === 'cued' ? 'Drag the crossfader to bring in the next song, or hit Mix now' : n.status === 'loading' ? 'Loading the next song…' : '')
+      : 'Auto is mixing for you. Drag the crossfader any time to take over';
+    if (pendingMix) $('xfhint').textContent = 'Mixing as soon as the next song has loaded…';
+    updateNowPlaying();
+  }
+  function updateNowPlaying(){
+    const d = fading ? fading.n : cur();
+    if (!started || !d.song){ return; }
+    $('npLbl').textContent = fading ? 'Mixing in' : (S.mode === 'auto' ? 'Now playing · Auto' : 'Now playing · DJ mode');
+    $('npT').textContent = d.song.t; $('npS').textContent = d.song.a;
+    const c = cur();
+    if (c.song && c.p.getCurrentTime){
+      const t = c.p.getCurrentTime(), h = hookOf(c.song), e = endOf(c.song);
+      $('npBar').style.width = Math.max(0, Math.min(100, (t - h) / Math.max(1, e - h) * 100)) + '%';
+    }
+  }
+
+  // ---------- init ----------
+  setMode(S.mode); renderGenres(); renderLib(); render();
+  const tag = document.createElement('script'); tag.src = 'https://www.youtube.com/iframe_api'; document.head.appendChild(tag);
+  if (location.protocol === 'file:') setTimeout(() => toast('Open this through a web server (see README), since YouTube blocks players opened as local files'), 800);
+})();
+</script>
+</body>
+</html>
